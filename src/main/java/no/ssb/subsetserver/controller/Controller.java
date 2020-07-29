@@ -1,72 +1,99 @@
 package no.ssb.subsetserver.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import no.ssb.subsetserver.domain.Subset;
 import no.ssb.subsetserver.domain.*;
+import no.ssb.subsetserver.repository.SubsetRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
+@CrossOrigin
 public class Controller {
 
+    @Autowired
+    SubsetRepository repository;
+
     private static final String HTTP = "https://data.ssb.no/api/klass/v1/classifications";
+    private static Controller instance;
 
 
-    @GetMapping("/subset")
-    public Subset getTest1(){
-        List<String> values = List.of(HTTP + "/68/codesAt.json?date=2020-03-18", HTTP+"/131/codesAt.json?date=2020-03-18");
+    static final String LDS_PROD = "https://lds-klass.staging-bip-app.ssb.no/ns/ClassificationSubset/";
+    static final String LDS_LOCAL = "http://localhost:9090/ns/ClassificationSubset";
+    private static String LDS_SUBSET_API = "";
+
+    private static String KLASS_CLASSIFICATIONS_API = "https://data.ssb.no/api/klass/v1/classifications";
+
+    private static final boolean prod = true;
+
+    public  Controller(){
+        instance = this;
+        updateLDSURL();
+    }
+
+    public static Controller getInstance(){
+        return instance;
+    }
+
+    private void updateLDSURL(){
+        if (prod){
+            LDS_SUBSET_API = System.getenv().getOrDefault("API_LDS", LDS_PROD);
+        } else {
+            LDS_SUBSET_API = LDS_LOCAL;
+        }
+        KLASS_CLASSIFICATIONS_API = System.getenv().getOrDefault("API_KLASS", KLASS_CLASSIFICATIONS_API);
+    }
+
+    /*
+    @GetMapping("/v1/subsets")
+    public ResponseEntity<Subset> getSubsets() {
+        LDSconsumer consumer = new LDSconsumer(LDS_SUBSET_API);
+        return consumer.getFrom("");
+    }
+
+     */
 
 
-        List<Language> nyListeName = new ArrayList<Language>();
-        List<Language> nyListeDescription = new ArrayList<Language>();
-        List<Language> nyListeVersionRationale = new ArrayList<Language>();
-        List<AdministrativeDetails> nyListeAdministativeDetails = new ArrayList<AdministrativeDetails>();
+/*
+    @GetMapping("/v1/subsets/{id}")
+    public List<Subset> getId(){
 
+    }
 
-        Language nameobj = new Language("Oslo Bærum Felter 1 og 5 v3", "nb");
-        Language descobj = new Language("Lagret for test formål", "nb");
-        Language verionsRatobj = new Language("Fjernet kode 2", "nb");
-        AdministrativeDetails adminobj = new AdministrativeDetails("ANNOTATION", values);
-        urn_rank urnRankobj = new urn_rank("urn:klass-api:classifications:68:code:1", 1);
-        urn_rank urnRankobj1 = new urn_rank("urn:klass-api:classifications:68:code:5", 4);
-        urn_rank urnRankobj2 = new urn_rank("urn:klass-api:classifications:131:code:0301", 2);
-
-
-        List<urn_rank> nyListeCodes = List.of(urnRankobj, urnRankobj1, urnRankobj2);
-        nyListeName.add(nameobj);
-        nyListeDescription.add(descobj);
-        nyListeVersionRationale.add(verionsRatobj);
-        nyListeAdministativeDetails.add(adminobj);
+ */
 
 
 
-        return Subset.builder()
-                .id("1")
-                .name(nyListeName)
-                .description(nyListeDescription)
-                .shortname("Test subset 1")
-                .administrativeStatus("OPEN")
-                .createdDate("2020-03-24T13:05:17.343Z")
-                .createdBy("312 - Seksjon for arbeidsmarked og lønnsstatistikk ")
-                .version("3.0.1")
-                .versionValidFrom("2020-03-25T13:05:17.343Z")
-                .versionRationale(nyListeVersionRationale)
-                .lastUpdatedDate("2020-03-24T13:05:17.343Z")
-                .lastUpdatedBy("Test user")
-                .validFrom("2020-03-25T13:05:17.343Z")
-                .validUntil("2021-03-26T13:05:17.343Z")
-                .administrativeDetails(nyListeAdministativeDetails)
-                .codes(nyListeCodes)
-                .build();
+    @GetMapping("/v1/subsets/{id}")
+    public Subset getSubsets(@PathVariable String id) throws JsonProcessingException {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        List<SubsetDAO> subsetDAOS = repository.findBySubsetIdOrderByVersionDesc(id);
+        Subset subset = objectMapper.readValue(subsetDAOS.get(0).getJsonContent(), Subset.class); //finne løsning på nullpointerexception
+
+        return subset;
 
     }
 
 
 
-    @PostMapping("/subset")
-    public Subset postEndepoint1(@RequestBody Subset foresporsell){
+    @PostMapping("v1/subsets")
+    public Subset postEndepoint1(@RequestBody Subset foresporsell) throws JsonProcessingException {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonValue = objectMapper.writeValueAsString(foresporsell);
+
+        repository.save(SubsetDAO.builder()
+                .subsetId(foresporsell.getId())
+                .version(foresporsell.getVersion())
+                .jsonContent(jsonValue)
+                .build());
         return foresporsell;
+
     }
 
 

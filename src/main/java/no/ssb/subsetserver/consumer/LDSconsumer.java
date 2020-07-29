@@ -19,7 +19,7 @@ public class LDSconsumer {
         LDS_URL = ldsSubsetApi;
     }
 
-    ResponseEntity<Subset> getFrom(String additional) {
+    public ResponseEntity<Subset> getFrom(String additional) {
         try {
             ResponseEntity<Subset> response = new RestTemplate().getForEntity(LDS_URL + additional, Subset.class);
             return response;
