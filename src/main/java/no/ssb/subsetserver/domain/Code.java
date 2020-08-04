@@ -7,7 +7,7 @@ import lombok.Data;
 @Builder
 @AllArgsConstructor
 @Data
-public class urn_rank {
+public class Code {
     private final String urn;
     private final int rank;
 }
