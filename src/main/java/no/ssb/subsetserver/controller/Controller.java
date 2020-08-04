@@ -74,7 +74,6 @@ public class Controller {
 
         List<SubsetDAO> subsetDAOS = repository.findBySubsetIdOrderByVersionDesc(id);
         System.out.println("TEST:::: " + subsetDAOS.size());
-        System.out.println("TEST:: PUSH");
         Subset subset = objectMapper.readValue(subsetDAOS.get(0).getJsonContent(), Subset.class); //finne løsning på nullpointerexception
 
 
